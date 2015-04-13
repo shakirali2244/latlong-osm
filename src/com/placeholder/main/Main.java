@@ -13,87 +13,38 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
-@Path("/todo")
+import org.codehaus.jettison.json.JSONException;
+import org.codehaus.jettison.json.JSONObject;
+
+@Path("/geocode")
 public class Main {
   // This method is called if XMLis request
  
     
   // This can be used to test the integration with the browser
   @GET
-  public static String getHTML(@QueryParam("latitude") String lati,
+  public static Response getAddr(@QueryParam("latitude") String lati,
 		  						@QueryParam("longitude") String longi) {
-	Connection c = Database.create();
-	Statement stmt = null;
-	try {
-		stmt = c.createStatement();
-	} catch (SQLException e1) {
-		// TODO Auto-generated catch block
-		e1.printStackTrace();
-	}
-	ResultSet rs = null;
-	
-	
-	String sql = "SELECT * FROM \"SA_dist\"("+lati+","+longi+");";
-	System.out.println(sql);
-    try {
-		 rs = stmt.executeQuery(sql);
-	} catch (SQLException e) {
+	  double d_lati = 0.0;
+	  double d_longi = 0.0;
+	  JSONObject obj = new JSONObject();
+	  try{
+		  d_lati = Double.parseDouble(lati);
+		  d_longi = Double.parseDouble(longi);
+	  }catch(Exception e){
+		  return Response.status(Status.NOT_ACCEPTABLE).build();
+	  }
+	  try {
+		obj.put("house",Database.getHouses(d_lati,d_longi));
+		obj.put("road",Database.getRoads(d_lati,d_longi));
+		obj.put("city",Database.getCities(d_lati,d_longi));
+	} catch (JSONException e) {
 		// TODO Auto-generated catch block
 		e.printStackTrace();
 	}
-    String response ="sadas";
-    ResultSetMetaData rsmd = null;
-	try {
-		rsmd = rs.getMetaData();
-	} catch (SQLException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
-    
-    try {
-		PrintColumnTypes.printColTypes(rsmd);
-	} catch (SQLException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
-    System.out.println("");
-
-    int numberOfColumns = 0;
-	try {
-		numberOfColumns = rsmd.getColumnCount();
-	} catch (SQLException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
-
-    for (int i = 1; i <= numberOfColumns; i++) {
-      if (i > 1) System.out.print(",  ");
-      String columnName = null;
-	try {
-		columnName = rsmd.getColumnName(i);
-	} catch (SQLException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
-      System.out.print(columnName);
-    }
-    System.out.println("");
-
-    try {
-		while (rs.next()) {
-		  for (int i = 1; i <= numberOfColumns; i++) {
-		    if (i > 1) System.out.print(",  ");
-		    String columnValue = rs.getString(i);
-		    System.out.print(columnValue);
-		  }
-		  System.out.println("");  
-		}
-	} catch (SQLException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
-	return response;
+	  return Response.ok(obj.toString()).build();
   }
   @Path("/reg")
   @GET
@@ -101,19 +52,4 @@ public class Main {
 	  Database.DriverRegistration();
 	  return "done";
   }
-
-
 } 
-class PrintColumnTypes  {
-
-	  public static void printColTypes(ResultSetMetaData rsmd)
-	                            throws SQLException {
-	    int columns = rsmd.getColumnCount();
-	    for (int i = 1; i <= columns; i++) {
-	      int jdbcType = rsmd.getColumnType(i);
-	      String name = rsmd.getColumnTypeName(i);
-	      System.out.print("Column " + i + " is JDBC type " + jdbcType);
-	      System.out.println(", which the DBMS calls " + name);
-	    }
-	  }
-	}
